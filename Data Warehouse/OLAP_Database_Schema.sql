@@ -1,3 +1,102 @@
+/*
+------------------------------------ SEQUENCES ------------------------------------
+*/
+
+-- public.states_statekey_seq definition
+
+CREATE SEQUENCE public.states_state_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+
+-- public.city_citykey_seq definition
+
+CREATE SEQUENCE public.city_citykey_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+	
+-- public.department_departmentkey_seq definition
+
+CREATE SEQUENCE public.department_departmentkey_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+
+-- public.facility_facilitykey_seq definition
+
+CREATE SEQUENCE public.facility_facilitykey_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+
+-- public.providercategory_providercategorykey_seq definition
+
+CREATE SEQUENCE public.providercategory_providercategorykey_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+
+-- public.enterprise_enterprisekey_seq definition
+
+CREATE SEQUENCE public.enterprise_enterprisekey_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+
+-- public.utilityprovider_utilityproviderkey_seq definition
+
+CREATE SEQUENCE public.utilityprovider_utilityproviderkey_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+
+-- public.payment_paymentkey_seq definition
+
+CREATE SEQUENCE public.payment_paymentkey_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+
+-- public.dates_datekey_seq definition
+
+CREATE SEQUENCE public.dates_datekey_seq
+	INCREMENT BY 1
+	MINVALUE 1
+	MAXVALUE 2147483647
+	START 1
+	CACHE 1
+	NO CYCLE;
+
+
+/*
+---------------------------------------- TABLES ----------------------------------------
+*/
+
 -- public.states definition
 
 CREATE TABLE public.states (
@@ -23,7 +122,7 @@ CREATE TABLE public.city (
 -- public.city foreign keys
 
 ALTER TABLE public.city
-ADD CONSTRAINT city_stateid_fkey FOREIGN KEY (statekey) REFERENCES public.states(statekey);
+ADD CONSTRAINT city_statekey_fkey FOREIGN KEY (statekey) REFERENCES public.states(statekey);
 
 ------------------------------------------------------------------------------------------
 
@@ -57,10 +156,10 @@ CREATE TABLE public.facility (
 -- public.facility foreign keys
 
 ALTER TABLE public.facility
-ADD CONSTRAINT facility_cityid_fkey FOREIGN KEY (citykey) REFERENCES public.city(citykey);
+ADD CONSTRAINT facility_citykey_fkey FOREIGN KEY (citykey) REFERENCES public.city(citykey);
 
 ALTER TABLE public.facility
-ADD CONSTRAINT facility_departmentid_fkey FOREIGN KEY (departmentkey) REFERENCES public.department(departmentkey);
+ADD CONSTRAINT facility_departmentkey_fkey FOREIGN KEY (departmentkey) REFERENCES public.department(departmentkey);
 
 ------------------------------------------------------------------------------------------
 
@@ -100,16 +199,31 @@ CREATE TABLE public.utilityprovider (
 	enterprisekey int4 NOT NULL,
 	providercategorykey int4 NOT NULL,
 	providerid int4 NOT NULL,
-	CONSTRAINT utilityproviderkey_pk PRIMARY KEY (utilityproviderkey)
+	CONSTRAINT utilityprovider_pkey PRIMARY KEY (utilityproviderkey)
 );
 
 -- public.utilityprovider foreign keys
 
 ALTER TABLE public.utilityprovider
-ADD CONSTRAINT utilityprovider_enterprise_fkey FOREIGN KEY (enterprisekey) REFERENCES public.enterprise(enterprisekey);
+ADD CONSTRAINT utilityprovider_enterprisekey_fkey FOREIGN KEY (enterprisekey) REFERENCES public.enterprise(enterprisekey);
 
 ALTER TABLE public.utilityprovider
-ADD CONSTRAINT utilityprovider_category_fkey FOREIGN KEY (providercategorykey) REFERENCES public.providercategory(providercategorykey);
+ADD CONSTRAINT utilityprovider_providercategorykey_fkey FOREIGN KEY (providercategorykey) REFERENCES public.providercategory(providercategorykey);
+
+------------------------------------------------------------------------------------------
+
+-- public.payment definition
+
+CREATE TABLE public.payment (
+	paymentkey int4 NOT NULL DEFAULT nextval('payment_paymentkey_seq'::regclass),
+	paymentmethod varchar(250) NULL,
+	accountownername varchar(50) NULL,
+	bankname varchar(250) NULL,
+	postalcode int4 NULL,
+	city int4 NULL,
+	accountid int4 NULL,
+	CONSTRAINT payment_pkey PRIMARY KEY (paymentkey)
+);
 
 ------------------------------------------------------------------------------------------
 
@@ -130,3 +244,64 @@ CREATE TABLE public.dates (
 	monthnumber int4 NULL,
 	CONSTRAINT dates_pkey PRIMARY KEY (datekey)
 );
+
+------------------------------------------------------------------------------------------
+
+-- public.bills definition
+
+CREATE TABLE public.bills (
+	utilityproviderkey int4 NOT NULL,
+	paymentkey int4 NOT NULL,
+	facilitykey int4 NOT NULL,
+	fromdatekey int4 NOT NULL,
+	todatekey int4 NOT NULL,
+	billamount float8 NULL,
+	unitprice float8 NULL,
+	deliverycost float8 NULL,
+	supplycost float8 NULL,
+	usageperiod float8 NULL,
+	CONSTRAINT bills_pkey PRIMARY KEY (utilityproviderkey, paymentkey, facilitykey, fromdatekey, todatekey)
+);
+
+-- public.bills foreign keys
+
+ALTER TABLE public.bills
+ADD CONSTRAINT bills_utilityproviderkey_fkey FOREIGN KEY (utilityproviderkey) REFERENCES public.utilityprovider(utilityproviderkey);
+
+ALTER TABLE public.bills
+ADD CONSTRAINT bills_paymentkey_fkey FOREIGN KEY (paymentkey) REFERENCES public.payment(paymentkey);
+
+ALTER TABLE public.bills
+ADD CONSTRAINT bills_facilitykey_fkey FOREIGN KEY (facilitykey) REFERENCES public.facility(facilitykey);
+
+ALTER TABLE public.bills
+ADD CONSTRAINT bills_fromdatekey_fkey FOREIGN KEY (fromdatekey) REFERENCES public.dates(datekey);
+
+ALTER TABLE public.bills
+ADD CONSTRAINT bills_todatekey_fkey FOREIGN KEY (todatekey) REFERENCES public.dates(datekey);	
+	
+------------------------------------------------------------------------------------------
+
+-- public.consumption definition
+
+CREATE TABLE public.consumption (
+	utilityproviderkey int4 NOT NULL,
+	facilitykey int4 NOT NULL,
+	fromdatekey int4 NOT NULL,
+	todatekey int4 NOT NULL,
+	numberofunits float8 NULL,
+	averageunits float8 NULL,
+	usageperiod float8 NULL,
+	CONSTRAINT consumption_pkey PRIMARY KEY (utilityproviderkey, facilitykey, fromdatekey, todatekey)
+);
+
+-- public.consumption foreign keys
+
+ALTER TABLE public.consumption
+ADD CONSTRAINT consumption_facilitykey_fkey FOREIGN KEY (facilitykey) REFERENCES public.facility(facilitykey);
+
+ALTER TABLE public.consumption
+ADD CONSTRAINT consumption_fromdatekey_fkey FOREIGN KEY (fromdatekey) REFERENCES public.dates(datekey);
+
+ALTER TABLE public.consumption
+ADD CONSTRAINT consumption_todatekey_fkey FOREIGN KEY (todatekey) REFERENCES public.dates(datekey);
